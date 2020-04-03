@@ -235,7 +235,7 @@ $$
 
 
 ```python
-		   target_Q = reward + ((1-done) * discount * target_Q).detach()
+		  target_Q = reward + ((1-done) * discount * target_Q).detach()
 ```
 
 The detach() is used to break the computational graphs and use the elements for further computation
@@ -249,7 +249,7 @@ Two critic models take (s, a) and return two Q-Values
 ![Alt training5](https://i.imgur.com/oa129cc.png)
 
 ```python
-current_Q1, current_Q2 = self.critic.forward(state, action)
+		 current_Q1, current_Q2 = self.critic.forward(state, action)
 ```
 
 We call the critic class function forward() to predict the q-value taking the current state and current action as input.
@@ -265,7 +265,7 @@ $$
 ![alt training6](https://i.imgur.com/hmhAElA.png)
 
 ```python
-      critic_loss = F.mse_loss(current_Q1, target_Q) + F.mse_loss(current_Q2, target_Q)
+        critic_loss = F.mse_loss(current_Q1, target_Q) + F.mse_loss(current_Q2, target_Q)
 ```
 
 
