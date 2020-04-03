@@ -1,5 +1,7 @@
 # Twin Delayed DDPG (TD3) Implementation
 
+TD3 is an actor-critic model similar as in AC3 but is mainly used for continuous action predictions in robotics scenario. It extends DDPG with multiple improvements. Here we have twin critics which help to reduce the over-estimation of value function, the delayed updates of target and noise regularizations.
+
 Below is the algorithm for TD3:
 
 
@@ -24,13 +26,38 @@ We define Add class function which fills Transitions in the storage array sequen
 
 We also define Sample function in the Replay memory class. This function takes batch size as input. Based on this batch size, it finds equal number of random transition tuples from the storage array. 
 
-![alt code1](https://i.imgur.com/lCiVdRT.png)
+```python
+class ReplayBuffer(object):
+  def __init__(self, max_size = 1e6):
+    self.storage = []
+    self.max_size = max_size
+    self.ptr = 0
+  
+  def add(self, transition):
+    if len(self.storage) == max_size:
+      self.storage[int(self.ptr)] = transition
+      self.ptr = (self.ptr+1)%max_size
+
+  def sample(self, batch_size):
+    ind = np.random.randint(0,len(self.storage), batch_size)
+    batch_states, batch_next_states, batch_actions, \
+    	batch_rewards, batch_dones = [],[],[],[],[]
+    for i in ind:
+      state, next_state, action, reward, done = self.storage[i]
+      batch_states.append(np.array(state, copy=False))  
+      batch_next_states.append(np.array(next_state, copy=False))
+      batch_actions.append(np.array(action, copy=False))
+      batch_rewards.append(np.array(reward, copy=False))
+      batch_dones.append(np.array(done, copy=False))
+    return np.array(batch_states),np.array(batch_next_states),np.array(batch_actions), \
+    np.array(batch_rewards).reshape(-1,1),np.array(batch_dones).reshape(-1,1)
+```
+
+
 
 
 
 ### Step 2: Defining the Model architecture:
-
-TD3 is an actor-critic model similar as in AC3 but is mainly used for continuous action predictions in robotics scenario. It extends DDPG with multiple improvements. Here we have twin critics which help to reduce the over-estimation of value function, the delayed updates of target and noise regularizations.
 
 1. Actor: It decides which action to take. It takes state as input. It essentially controls how the agent behaves by learning the optimal policy (policy-based). 
 2. Critic: Critic evaluates the action predicted by actor by computing the value function.
@@ -39,13 +66,56 @@ TD3 is an actor-critic model similar as in AC3 but is mainly used for continuous
 
 To define the actor and critic, we make classes inheriting the Pytorch's nn.Module object. 
 
- ![alt actor critic code](https://i.imgur.com/bwhUT4d.png)
+ ```python
+class Actor(nn.Module):
+  def __init__(self, state_dims, action_dim, max_action):
+    super(Actor, self).__init__()
+    self.layer_1 = nn.Linear(state_dims, 400)
+    self.layer_2 = nn.Linear(400,300)
+    self.layer_3 = nn.Linear(300, action_dim)
+    self.max_action = max_action
+  
+  def forward(self, x):
+    x = F.relu(self.layer_1(x))
+    x = F.relu(self.layer_2(x))
+    x = self.max_action * torch.tanh(self.layer_3(x))
+    return x
+ ```
+
+
 
 DNN with 2 hidden layers of 400 and 300 nodes respectively. For predicting continuous action space (like predicting limb movement of a robot), we use tanh function, multiplying it with max_function value acquired from the environment, it returns continuous value clipped between max_action and -max_action. 
 
+```python
+class Critic(nn.Module):
+  def __init__(self, state_dims, action_dim):
+    super(Critic, self).__init__()
+    self.layer_1  = nn.Linear(state_dims + action_dim, 400)
+    self.layer_2 = nn.Linear(400, 300)
+    self.layer_3 = nn.Linear(300,action_dim)
+
+    def forward(self, x, u):
+      xu = torch.cat([x,u],1)
+      x1 = F.relu(self.layer_1(xu))
+      x1 = F.relu(self.layer_2(x1))
+      x1 = self.layer_3(x1)
+      #forward propagation for second critic
+      x2 = F.relu(self.layer_1(xu))
+      x2 = F.relu(self.layer_2(x2))
+      x2 = self.layer_3(x2)
+
+      return x1,x2
+
+    def Q1(self, x, u):
+      xu = torch.cat([x,u],1)
+      x1 = F.relu(self.layer_1(xu))
+      x1 = F.relu(self.layer_2(x1))
+      x1 = self.layer_3(x1)
+
+      return x1
+```
 
 
-![alt critic code](https://i.imgur.com/kEnobzb.png)
 
 DNN with 2 hidden layers of 400 and 300 nodes respectively. the input dimension is defined as concatenation of action and state dimension, as a critic network takes state and action as inputs.
 
