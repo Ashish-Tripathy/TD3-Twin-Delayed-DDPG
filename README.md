@@ -1,4 +1,4 @@
-Twin Delayed DDPG (TD3) Implementation
+# Twin Delayed DDPG (TD3) Implementation
 
 TD3 is an actor-critic model similar as in AC3 but is mainly used for continuous action predictions in robotics scenario. It extends DDPG with multiple improvements. Here we have twin critics which help to reduce the over-estimation of value function, the delayed updates of target and noise regularizations.
 
