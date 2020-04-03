@@ -133,6 +133,12 @@ So the entire architecture looks like:
 
 ## Training Process
 
+The training process is described with the following flowchart. Some steps have been combined for space adjustments.
+
+![alt training](![img](https://i.imgur.com/XchSvHL.png)
+
+
+
 We create a TD3 class and initialise the variables.
 
 ```python
